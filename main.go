@@ -28,7 +28,7 @@ func main() {
 		Region: aws.String(region),
 	})
 
-	_, err = dynamodbSvc.GetItem(&dynamodb.GetItemInput{
+	item, err := dynamodbSvc.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(dynamodbTable),
 		Key: map[string]*dynamodb.AttributeValue{
 			"ID": {
@@ -41,9 +41,14 @@ func main() {
 		return
 	}
 
+	if item.Item == nil {
+		log.Println("no flag reset db, do nothing")
+		return
+	}
+
 	log.Printf("Clone DB %v to %v\n", sourceDB, destDB)
 	var stdout, stderr bytes.Buffer
-	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
+	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
