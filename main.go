@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -46,13 +47,36 @@ func main() {
 		return
 	}
 
-	log.Printf("Clone DB %v to %v\n", sourceDB, destDB)
-	var stdout, stderr bytes.Buffer
-	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	_ = cmd.Run()
-	log.Printf("Finish clone DB %v to %v with out: %v, err: %v\n", sourceDB, destDB, stdout.String(), stderr.String())
+	log.Printf("Drop all tables of %v\n", destDB)
+	err = executeInShell("echo \"SET FOREIGN_KEY_CHECKS = 0;\" > /tmp/temp.sql")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --add-drop-table --no-data %v | grep 'DROP TABLE' >> /tmp/temp.sql", destDB))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = executeInShell("echo \"SET FOREIGN_KEY_CHECKS = 1;\" >> /tmp/temp.sql")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF %v < /tmp/temp.sql", destDB))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	log.Println("Begin clone DB")
+	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
+	if err != nil {
+		log.Printf("Finish clone DB %v to %v with err: %v\n", sourceDB, destDB, err.Error())
+	}
 
 	dynamodbSvc.DeleteItem(&dynamodb.DeleteItemInput{
 		TableName: aws.String(dynamodbTable),
@@ -62,4 +86,19 @@ func main() {
 			},
 		},
 	})
+}
+
+func executeInShell(c string) error {
+	cmd := exec.Command("/bin/sh", "-c", c)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	errMsg := stderr.String()
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
+	return nil
 }
