@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 
@@ -37,10 +39,13 @@ func main() {
 		panic(err)
 	}
 
-	cmd := exec.Command(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
-
-	cmd.Start()
-	cmd.Wait()
+	log.Printf("Clone DB %v to %v\n", sourceDB, destDB)
+	var stdout, stderr bytes.Buffer
+	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	_ = cmd.Run()
+	log.Printf("Finish clone DB %v to %v with out: %v, err: %v\n", sourceDB, destDB, stdout.String(), stderr.String())
 
 	dynamodbSvc.DeleteItem(&dynamodb.DeleteItemInput{
 		TableName: aws.String(dynamodbTable),
