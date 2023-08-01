@@ -79,6 +79,11 @@ func main() {
 		}
 	}
 
+	b, err := os.ReadFile("/tmp/temp.sql")
+	if err == nil {
+		log.Printf("Droped all tables with SQL scripts:\n%v\n", string(b))
+	}
+
 	log.Println("Begin clone DB")
 	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
 	if err != nil {
