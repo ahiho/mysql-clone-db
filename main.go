@@ -21,7 +21,8 @@ func main() {
 
 	sess, err := awsSess.NewSession()
 	if err != nil {
-		panic(err)
+		log.Printf("cannot create new aws session, error: %v", err)
+		return
 	}
 	dynamodbSvc := dynamodb.New(sess, &aws.Config{
 		Region: aws.String(region),
@@ -36,7 +37,8 @@ func main() {
 		},
 	})
 	if err != nil {
-		panic(err)
+		log.Printf("cannot get item: error %v", err)
+		return
 	}
 
 	log.Printf("Clone DB %v to %v\n", sourceDB, destDB)
