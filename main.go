@@ -82,7 +82,9 @@ func main() {
 	log.Println("Begin clone DB")
 	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --set-gtid-purged=OFF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
 	if err != nil {
-		log.Printf("Finish clone DB %v to %v with err: %v\n", sourceDB, destDB, err.Error())
+		log.Printf("Clone DB %v to %v has err: %v\n", sourceDB, destDB, err.Error())
+	} else {
+		log.Printf("Finish clone DB %v to %v", sourceDB, destDB)
 	}
 
 	dynamodbSvc.DeleteItem(&dynamodb.DeleteItemInput{
