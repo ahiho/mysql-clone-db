@@ -1,6 +1,5 @@
-FROM golang:1.20-alpine as builder
+FROM golang:1.20-bookworm as builder
 
-RUN apk add git
 WORKDIR /app
 
 COPY . ./
@@ -8,9 +7,8 @@ COPY . ./
 RUN go build -o /app/mysqlclonedb main.go
 
 
-FROM alpine:3.18.2 AS final
+FROM mysql:8.0.34-debian AS final
 
-RUN apk update && apk add --no-cache mysql-client
 COPY --from=builder /app/mysqlclonedb /app/mysqlclonedb
 
 CMD ["/app/mysqlclonedb"]
