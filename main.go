@@ -48,7 +48,7 @@ func main() {
 
 	log.Printf("Clone DB %v to %v\n", sourceDB, destDB)
 	var stdout, stderr bytes.Buffer
-	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --column-statistics=0 --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
+	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --routines --no-tablespaces %v | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\\*/\\*/' | mysql --defaults-file=/mnt/MYSQL_CNF %v", sourceDB, destDB))
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
