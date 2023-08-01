@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	awsSess "github.com/aws/aws-sdk-go/aws/session"
@@ -54,10 +55,13 @@ func main() {
 		return
 	}
 
-	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --add-drop-table --no-data %v | grep 'DROP TABLE' >> /tmp/temp.sql", destDB))
+	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF --add-drop-table --set-gtid-purged=OFF --no-data %v | grep 'DROP TABLE' >> /tmp/temp.sql", destDB))
 	if err != nil {
 		log.Println(err)
-		return
+		if !strings.HasPrefix(err.Error(), "Warning") {
+			log.Println("EXIT")
+			return
+		}
 	}
 
 	err = executeInShell("echo \"SET FOREIGN_KEY_CHECKS = 1;\" >> /tmp/temp.sql")
@@ -69,7 +73,10 @@ func main() {
 	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF %v < /tmp/temp.sql", destDB))
 	if err != nil {
 		log.Println(err)
-		return
+		if !strings.HasPrefix(err.Error(), "Warning") {
+			log.Println("EXIT")
+			return
+		}
 	}
 
 	log.Println("Begin clone DB")
