@@ -70,7 +70,7 @@ func main() {
 		return
 	}
 
-	err = executeInShell(fmt.Sprintf("mysqldump --defaults-file=/mnt/MYSQL_CNF %v < /tmp/temp.sql", destDB))
+	err = executeInShell(fmt.Sprintf("mysql --defaults-file=/mnt/MYSQL_CNF %v < /tmp/temp.sql", destDB))
 	if err != nil {
 		log.Println(err)
 		if !strings.HasPrefix(err.Error(), "Warning") {
